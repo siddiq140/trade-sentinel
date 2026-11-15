@@ -39,8 +39,9 @@ judgement steps wait. Telegram: set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` 
 It stays up only while your computer is on and the window is open: keep it running with
 `nohup ./start.sh &`, a systemd service, or Windows Task Scheduler ("At log on").
 
-**Cost:** each 15-minute cycle sends up to ~25 charts to Claude. On Opus 5.5 that is roughly
-₹10-40 per cycle depending on how many stocks reach SIGNAL and PLAN. Lower it in
+**Cost (estimate):** each cycle sends the shortlist (~20k tokens) and up to ~25 charts (~25k tokens)
+to Claude. On Opus 5.5 that is roughly $0.40-0.80 (about ₹35-70) per cycle, so about ₹900-1,800
+per trading day at every 15 minutes. Check your real usage in the Claude Console. Lower it in
 `trader-247/config.json`: `scan_interval_min` (e.g. 30 or 60), `max_candidates`, or
 `claude_model`/`claude_effort` per engine.
 
