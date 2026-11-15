@@ -1,0 +1,9 @@
+[
+  {"symbol": "AAPL", "sector": "Technology"},
+  {"symbol": "MSFT", "sector": "Technology"},
+  {"symbol": "NVDA", "sector": "Technology"},
+  {"symbol": "JPM",  "sector": "Financials"},
+  {"symbol": "XOM",  "sector": "Energy"},
+  {"symbol": "RELIANCE.NS", "sector": "Energy"},
+  {"symbol": "BTC-USD", "sector": "Crypto"}
+]

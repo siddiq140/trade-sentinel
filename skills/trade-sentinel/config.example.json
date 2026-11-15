@@ -1,0 +1,10 @@
+{
+  "market": "US stocks",
+  "index_symbol": "^GSPC",
+  "min_liquidity": 5000000,
+  "max_candidates": 40,
+  "pass_mark": 70,
+  "market_shock_pct": 2.0,
+  "monitor_interval_min": 15,
+  "rr_tolerance": 0.05
+}
