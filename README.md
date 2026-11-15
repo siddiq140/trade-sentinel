@@ -19,8 +19,6 @@ MARKET DATA (code) -> 01 SCAN -> 02 SIGNAL -> 03 PLAN -> 04 RISK -> 05 MONITOR -
 
 **Swing trades held 1-10 days: [swing/](swing/README.md)**, same engines and rules plus a 10-day hold limit.
 
-**5-year test of the rules: [research/](research/README.md).** None of the tested breakout or pullback rule sets made money after costs from Nov 2021 to Nov 2026, so treat every decision card as a paper trade.
-
 Every cycle is saved as one JSON file in [`snapshots/`](snapshots/) (`latest.json` plus one file per
 cycle under the trading date): whole-market breadth for all NSE equities, the scan shortlist, every
 signal, plan and risk verdict, the decision cards, and chart data for the planned stocks. Rebuild the
