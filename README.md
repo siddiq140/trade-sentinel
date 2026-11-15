@@ -23,7 +23,7 @@ Clone this repo and open it in Claude Code: `.claude/skills` links to `skills/`,
 
 ```bash
 E="python3 skills/trade-sentinel/engine.py"
-$E init        # creates trader-247/ with config, risk rules, account, universe
+$E init --preset nse   # or plain `init`; creates trader-247/ with config, risk rules, account, universe
 $E fetch       # 1y daily bars (free Yahoo data) or --csv DIR
 $E prepare     # start a cycle
 ```

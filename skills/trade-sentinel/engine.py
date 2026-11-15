@@ -5,7 +5,7 @@ Standard library only. Python 3.9+. Code does the maths; Claude plays the five
 engines (SCAN, SIGNAL, PLAN, RISK, MONITOR) from prompts/; a human places
 every order. Nothing here ever talks to a broker.
 
-    python3 engine.py init                         # create trader-247/ with config, rules, account, universe
+    python3 engine.py init [--preset nse]          # create trader-247/ with config, rules, account, universe
     python3 engine.py fetch                        # 1y daily bars for the universe (free Yahoo chart JSON)
     python3 engine.py prepare                      # new cycle: indicators + code triggers -> scan_input.json
     python3 engine.py validate scan                # check Claude's scan.json -> scan.valid.json
@@ -40,11 +40,13 @@ import random
 import shutil
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+UA = "Mozilla/5.0 (compatible; trade-sentinel/1.0)"  # Yahoo answers a fake Chrome UA with HTTP 429
+YAHOO_HOSTS = ("https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com")
 VERSION = "1.0"
 
 SETUPS = {"BREAKOUT", "PULLBACK", "MOMENTUM", "TREND_CONT", "REVERSAL", "NONE"}
@@ -129,10 +131,29 @@ def http_json(url, timeout=20):
         return json.loads(r.read().decode())
 
 
+def yahoo_json(path):
+    """query1, then query2 on a 429 / 5xx; one more round after 5 s if a 429 was seen."""
+    last = None
+    for attempt in (0, 1):
+        saw_429 = False
+        for host in YAHOO_HOSTS:
+            try:
+                return http_json(host + path)
+            except urllib.error.HTTPError as e:
+                last = e
+                if e.code == 429:
+                    saw_429 = True
+                elif e.code < 500:
+                    raise
+        if not saw_429:
+            break
+        time.sleep(5)
+    raise last
+
+
 def yahoo_bars(sym, rng="1y", interval="1d"):
-    url = ("https://query1.finance.yahoo.com/v8/finance/chart/%s?range=%s&interval=%s"
-           % (urllib.parse.quote(sym), rng, interval))
-    res = http_json(url)["chart"]["result"][0]
+    path = "/v8/finance/chart/%s?range=%s&interval=%s" % (urllib.parse.quote(sym), rng, interval)
+    res = yahoo_json(path)["chart"]["result"][0]
     meta = res.get("meta", {})
     off = meta.get("gmtoffset", 0) or 0
     q = res["indicators"]["quote"][0]
@@ -399,8 +420,13 @@ def cmd_validate(ctx, a):
 # ------------------------------------------------------------------ commands
 def cmd_init(ctx, a):
     os.makedirs(ctx.p("bars"), exist_ok=True)
+    pre = os.path.join(HERE, "presets", a.preset) if a.preset else None
+    if pre and not os.path.isdir(pre):
+        die("no preset %r (have: %s)" % (a.preset, ", ".join(sorted(os.listdir(os.path.join(HERE, "presets"))))))
     for src, dst in (("config.example.json", "config.json"), ("risk_rules.example.json", "risk_rules.json"),
                      ("account.example.json", "account.json"), ("universe.example.json", "universe.json")):
+        if pre and os.path.exists(os.path.join(pre, dst)):
+            src = os.path.join(pre, dst)
         if not os.path.exists(ctx.p(dst)):
             shutil.copy(os.path.join(HERE, src), ctx.p(dst))
             print("created " + ctx.p(dst))
@@ -593,6 +619,9 @@ def compute_risk(ctx, plans, t):
             {"id": "G0_DATA", "pass": per_unit > 0 and eq > 0 and sym not in active,
              "value": "already on watchlist" if sym in active else ("ok" if per_unit > 0 and eq > 0 else "bad"),
              "limit": "consistent plan, equity > 0, not already active"},
+            {"id": "G0_SHORT", "pass": p["direction"] == "LONG" or bool(ctx.config.get("allow_short", True)),
+             "value": p["direction"], "limit": "shorts allowed" if ctx.config.get("allow_short", True)
+             else "LONG only (allow_short false: no overnight shorts in this market)"},
             {"id": "G1_SIZE", "pass": size >= 1, "value": size, "limit": ">= 1 at %s%%" % risk_pct},
             {"id": "G2_EXPOSURE", "pass": exposure <= R["max_position_pct"], "value": r2(exposure),
              "limit": R["max_position_pct"]},
@@ -633,7 +662,7 @@ def compute_risk(ctx, plans, t):
 
 
 def _why(gate):
-    names = {"G0_DATA": "DATA", "G1_SIZE": "size rounds to zero at the risk per trade",
+    names = {"G0_DATA": "DATA", "G0_SHORT": "short not allowed in this market", "G1_SIZE": "size rounds to zero at the risk per trade",
              "G2_EXPOSURE": "position value over the max %", "G2_OPEN_RISK": "open risk over the max %",
              "G2_LEVERAGE": "would need leverage", "G3_RR": "R:R below the minimum",
              "G4_DAILY": "daily loss limit", "G4_WEEKLY": "weekly loss limit hit",
@@ -691,7 +720,7 @@ def approved(ctx, code_only=False):
 
 def card_text(v, p, s, eq, cur=""):
     z = p["entry_zone"]
-    groups = sorted({g["id"].split("_")[0] for g in v["gates"] if g["id"] != "G0_DATA"})
+    groups = sorted({g["id"].split("_")[0] for g in v["gates"] if not g["id"].startswith("G0")})
     passed = sum(1 for gr in groups if all(g["pass"] for g in v["gates"] if g["id"].startswith(gr + "_")))
     arrow = "▲" if p["direction"] == "LONG" else "▼"
     risk_pct = v["risk_amount"] / eq * 100 if eq else 0
@@ -1015,7 +1044,8 @@ def main(argv=None):
     ap.add_argument("--dir", default="trader-247")
     ap.add_argument("--cycle")
     sp = ap.add_subparsers(dest="cmd", required=True)
-    sp.add_parser("init")
+    i = sp.add_parser("init")
+    i.add_argument("--preset", help="market preset from presets/ (e.g. nse)")
     f = sp.add_parser("fetch")
     f.add_argument("--symbols")
     f.add_argument("--range", default="1y")

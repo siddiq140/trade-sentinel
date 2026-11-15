@@ -6,5 +6,6 @@
   "pass_mark": 70,
   "market_shock_pct": 2.0,
   "monitor_interval_min": 15,
-  "rr_tolerance": 0.05
+  "rr_tolerance": 0.05,
+  "allow_short": true
 }

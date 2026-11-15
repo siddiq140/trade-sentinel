@@ -1,0 +1,11 @@
+{
+  "market": "NSE cash equities (NIFTY 50)",
+  "index_symbol": "^NSEI",
+  "min_liquidity": 500000000,
+  "max_candidates": 40,
+  "pass_mark": 70,
+  "market_shock_pct": 1.5,
+  "monitor_interval_min": 15,
+  "rr_tolerance": 0.05,
+  "allow_short": false
+}

@@ -68,7 +68,8 @@ $E review | status
 
 ## Setup (first time)
 
-1. `$E init`, then edit with the user:
+1. `$E init` (or `$E init --preset nse` for NSE: NIFTY 50 universe, `^NSEI`, ₹1,00,000
+   equity, ₹50 crore liquidity floor, `allow_short` false), then edit with the user:
    - `trader-247/universe.json`: one market, 50-300 liquid symbols, each
      `{"symbol", "sector"}`. Yahoo symbols: `AAPL`, `RELIANCE.NS`, `BTC-USD`.
    - `trader-247/account.json`: `equity` (and `currency_symbol` for cards).
@@ -77,7 +78,8 @@ $E review | status
      data shows why.
    - `trader-247/config.json`: `index_symbol` (`^GSPC`, `^NSEI`, `BTC-USD`),
      `min_liquidity` (avg daily traded value, in the market's currency),
-     `max_candidates` 40, `pass_mark` 70, `market_shock_pct` 2.0.
+     `max_candidates` 40, `pass_mark` 70, `market_shock_pct` 2.0, `allow_short`
+     (false where overnight shorts are impossible, e.g. NSE cash: gate G0_SHORT blocks them).
 2. `$E fetch`. One bad symbol never stops the run. Offline or with a vendor:
    `--csv DIR` with `SYMBOL.csv` (date,open,high,low,close,volume).
 3. Optional inputs Claude fills before a cycle:
@@ -206,7 +208,7 @@ arithmetic. Most cycles should cost cents.
 
 Size: `int(equity × risk% / 100 // |entry_mid − stop|)`: 25,000 × 1% = 250 /
 4.30 → 58. Plans in one batch are checked in order as if each approved one
-was taken. G0_DATA also blocks a symbol already WAITING/OPEN or a broken plan.
+was taken. G0_SHORT blocks a SHORT plan when `allow_short` is false. G0_DATA also blocks a symbol already WAITING/OPEN or a broken plan.
 Daily/weekly P&L come from closed journal rows.
 
 ## Journal and review
