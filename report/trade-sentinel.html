@@ -80,7 +80,7 @@ input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:
     <p class="lede" id="lede"></p>
   </header>
 
-  <section>
+  <section id="s-market">
     <h2>The whole market that day</h2>
     <div class="tiles" id="tiles"></div>
     <div class="panel">
@@ -89,17 +89,17 @@ input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:
     </div>
   </section>
 
-  <section>
+  <section id="s-funnel">
     <h2>From every listed stock to a decision</h2>
     <div class="funnel" id="funnel"></div>
   </section>
 
-  <section>
+  <section id="s-cards">
     <div class="head"><h2>Waiting for your answer</h2><span class="note">Approved by the code gates and the second-opinion risk check.</span></div>
     <div class="plan-grid" id="cards"></div>
   </section>
 
-  <section>
+  <section id="s-plans">
     <div class="head"><h2>Every plan and why it stopped</h2></div>
     <div class="legend">
       <span><i class="sw" style="background:var(--zone);height:10px"></i>Entry zone</span>
@@ -110,13 +110,13 @@ input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:
     <div class="plan-grid" id="plans"></div>
   </section>
 
-  <section>
+  <section id="s-scores">
     <div class="head"><h2>Signal scores</h2><div class="legend"><span><i class="sw" style="background:var(--accent)"></i>Pass (70+)</span><span><i class="sw" style="background:var(--muted)"></i>Filtered</span></div></div>
     <div class="panel"><div class="chart" id="scores"></div></div>
     <div class="panel tbl"><table id="sigs"></table></div>
   </section>
 
-  <section>
+  <section id="s-movers">
     <h2>Biggest liquid movers</h2>
     <div class="grid2">
       <div class="panel tbl"><h3 style="margin-bottom:8px">Gainers</h3><table id="gain"></table></div>
@@ -124,7 +124,7 @@ input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:
     </div>
   </section>
 
-  <section>
+  <section id="s-short">
     <div class="head"><h2>Full scan shortlist</h2><input type="search" id="q" placeholder="Filter by symbol or trigger" aria-label="Filter the shortlist"></div>
     <div class="panel tbl scroll"><table id="short"></table></div>
   </section>

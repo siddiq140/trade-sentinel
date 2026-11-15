@@ -15,13 +15,16 @@ MARKET DATA (code) -> 01 SCAN -> 02 SIGNAL -> 03 PLAN -> 04 RISK -> 05 MONITOR -
 
 ## Saved results
 
+**Latest run as pictures: [snapshots/](snapshots/README.md)** (open a dated folder for older runs).
+
 Every cycle is saved as one JSON file in [`snapshots/`](snapshots/) (`latest.json` plus one file per
 cycle under the trading date): whole-market breadth for all NSE equities, the scan shortlist, every
 signal, plan and risk verdict, the decision cards, and chart data for the planned stocks. Rebuild the
 report page from any snapshot with `python3 report/build_report.py [snapshot.json]`
 (writes `report/trade-sentinel.html`; open it in a browser).
 
-After a cycle: `python3 skills/trade-sentinel/engine.py snapshot && python3 report/build_report.py`.
+After a cycle: `python3 skills/trade-sentinel/engine.py snapshot && python3 report/build_report.py --images`
+(`--images` saves PNGs and a README.md into the snapshot folder so GitHub shows the report as pictures; it needs Node with Playwright).
 
 ## Run it 24/7 on your computer (NSE)
 
