@@ -6,7 +6,8 @@ engines (SCAN, SIGNAL, PLAN, RISK, MONITOR) from prompts/; a human places
 every order. Nothing here ever talks to a broker.
 
     python3 engine.py init [--preset nse]          # create trader-247/ with config, rules, account, universe
-    python3 engine.py fetch                        # 1y daily bars for the universe (free Yahoo chart JSON)
+    python3 engine.py universe                     # every NSE equity (EQUITY_L.csv, series EQ) -> universe.json
+    python3 engine.py fetch [--liquid-only]        # daily bars, 6 at a time; tops up saved history (free Yahoo)
     python3 engine.py prepare                      # new cycle: indicators + code triggers -> scan_input.json
     python3 engine.py validate scan                # check Claude's scan.json -> scan.valid.json
     python3 engine.py signal-input                 # candidates + 60 bars + SMA/ATR -> signal_input.json
@@ -33,6 +34,7 @@ Every command takes --dir (default trader-247) and --cycle (default: the latest)
 import argparse
 import csv
 import datetime as dt
+import io
 import json
 import math
 import os
@@ -71,11 +73,14 @@ def load(path, default=None):
         return json.load(f)
 
 
-def save(path, obj):
+def save(path, obj, compact=False):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = path + ".tmp.%d" % os.getpid()
     with open(tmp, "w") as f:
-        json.dump(obj, f, indent=2)
+        if compact:
+            json.dump(obj, f, separators=(",", ":"))
+        else:
+            json.dump(obj, f, indent=2)
     os.replace(tmp, path)
 
 
@@ -235,6 +240,19 @@ def metrics(bars):
         "avg_traded_value": round(sum(b["close"] * b["volume"] for b in bars[-20:]) / 20),
         "avg_daily_move_pct": r2(sum(moves) / len(moves)) if moves else None,
     }
+
+
+def session_fraction(config):
+    """(share of the session elapsed, today's local date) while the market is open, else (None, None)."""
+    if not config.get("session_open"):
+        return None, None
+    off = dt.timedelta(minutes=int(config.get("utc_offset_min", 0)))
+    now = now_utc() + off
+    o = now.replace(hour=int(config["session_open"][:2]), minute=int(config["session_open"][3:5]), second=0, microsecond=0)
+    c = now.replace(hour=int(config["session_close"][:2]), minute=int(config["session_close"][3:5]), second=0, microsecond=0)
+    if not (o <= now < c):
+        return None, None
+    return max(0.1, (now - o) / (c - o)), now.date().isoformat()
 
 
 def code_triggers(m):
@@ -438,30 +456,97 @@ def cmd_init(ctx, a):
     print("Edit universe.json (50-300 liquid symbols, one market), account.json (equity) and risk_rules.json.")
 
 
+def merge_bars(old, new):
+    """Keep old history, let new bars (same date) win: today's partial bar is replaced each refresh."""
+    by = {b["date"]: b for b in old}
+    by.update({b["date"]: b for b in new})
+    return [by[d] for d in sorted(by)][-400:]
+
+
+def liquid(ctx, sym):
+    bars = ctx.bars(sym)[-21:-1]
+    if len(bars) < 20:
+        return True  # unknown yet: keep it
+    return sum(b["close"] * b["volume"] for b in bars) / 20 >= ctx.config["min_liquidity"]
+
+
 def cmd_fetch(ctx, a):
+    from concurrent.futures import ThreadPoolExecutor
     syms = a.symbols.split(",") if a.symbols else [u["symbol"] for u in ctx.universe]
+    if a.liquid_only:
+        syms = [s for s in syms if liquid(ctx, s)]
     idx = ctx.config.get("index_symbol")
     if idx and idx not in syms:
         syms.append(idx)
-    ok = 0
-    for s in syms:
+    quiet = len(syms) > 60
+
+    def one(s):
         if a.csv:
             path = os.path.join(a.csv, safe(s) + ".csv")
             if not os.path.exists(path):
-                print("  %-12s no CSV at %s" % (s, path))
-                continue
+                return s, "no CSV at " + path
             bars = load_csv_bars(path)
         else:
+            old = ctx.bars(s)
+            rng = a.range or ("1mo" if len(old) >= 60 else "1y")
             try:
-                bars, _ = yahoo_bars(s, a.range)
+                new, _ = yahoo_bars(s, rng)
             except Exception as ex:  # one bad symbol never stops the run
-                print("  %-12s fetch failed: %s" % (s, ex))
-                continue
-            time.sleep(a.pause)
-        save(ctx.p("bars", safe(s) + ".json"), bars)
-        ok += 1
-        print("  %-12s %d bars to %s" % (s, len(bars), bars[-1]["date"] if bars else "-"))
-    print("fetched %d/%d" % (ok, len(syms)))
+                return s, "fetch failed: %s" % ex
+            bars = merge_bars(old, new)
+            if a.pause:
+                time.sleep(a.pause)
+        if not bars:
+            return s, "no bars"
+        save(ctx.p("bars", safe(s) + ".json"), bars, compact=True)
+        return s, None
+
+    ok, failed, t0 = 0, [], time.time()
+    with ThreadPoolExecutor(max(1, a.workers)) as ex:
+        for i, (s, err) in enumerate(ex.map(one, syms), 1):
+            if err:
+                failed.append((s, err))
+            else:
+                ok += 1
+            if not quiet:
+                print("  %-14s %s" % (s, err or "ok"))
+            elif i % 250 == 0:
+                print("  %d/%d (%.0fs)" % (i, len(syms), time.time() - t0), flush=True)
+    for s, err in failed[:10]:
+        print("  ! %-14s %s" % (s, err))
+    if len(failed) > 10:
+        print("  ! ... and %d more" % (len(failed) - 10))
+    print("fetched %d/%d in %.0fs" % (ok, len(syms), time.time() - t0))
+
+
+def cmd_universe(ctx, a):
+    """NSE EQUITY_L.csv: every listed equity. Series EQ only by default (BE/BZ are trade-to-trade)."""
+    url = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+    nse_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    text, last = None, None
+    for ua in (nse_ua, UA):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": ua, "Accept": "text/csv,*/*"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                text = r.read().decode("utf-8", "replace")
+            break
+        except Exception as ex:
+            last = ex
+    if not text or "SYMBOL" not in text[:200]:
+        die("NSE did not send EQUITY_L.csv (%s). Try again, or download it in a browser." % last)
+    keep = {x.strip().upper() for x in a.series.split(",")}
+    rows = list(csv.DictReader(io.StringIO(text)))
+    old = {u["symbol"]: u for u in ctx.universe}
+    out = []
+    for r in rows:
+        r = {k.strip(): (v or "").strip() for k, v in r.items()}
+        if r.get("SERIES", "").upper() not in keep:
+            continue
+        sym = r["SYMBOL"] + ".NS"
+        out.append({"symbol": sym, "name": r.get("NAME OF COMPANY"), "series": r.get("SERIES"),
+                    "sector": (old.get(sym) or {}).get("sector")})
+    save(ctx.p("universe.json"), out)
+    print("universe: %d NSE equities (series %s) -> %s" % (len(out), ",".join(sorted(keep)), ctx.p("universe.json")))
 
 
 def cmd_prepare(ctx, a):
@@ -473,12 +558,20 @@ def cmd_prepare(ctx, a):
     ctx.cycle = cid
     heads = load(ctx.p("headlines.json"), {})
     allm, short, warn = {}, [], []
+    frac, today = session_fraction(ctx.config)
+    few = 0
     for u in ctx.universe:
         s = u["symbol"]
-        m = metrics(ctx.bars(s))
+        bars = ctx.bars(s)
+        m = metrics(bars)
         if not m:
-            warn.append("%s: fewer than 21 bars, skipped (run fetch)" % s)
+            few += 1
             continue
+        if frac is not None and m["date"] == today and m["volume_ratio"] is not None:
+            # today's bar is still forming: compare volume so far with the same share of a normal day
+            m["volume_ratio_raw"] = m["volume_ratio"]
+            m["volume_ratio"] = r2(m["volume_ratio"] / frac)
+            m["intraday_partial"] = True
         if m["avg_traded_value"] < ctx.config["min_liquidity"]:
             continue
         m["symbol"], m["sector"] = s, u.get("sector")
@@ -487,7 +580,13 @@ def cmd_prepare(ctx, a):
         allm[s] = m
         if m["code_triggers"] or m["headlines"]:
             short.append(m)
+    if few:
+        warn.append("%d symbols have fewer than 21 bars (new listings or not fetched yet), skipped" % few)
     short.sort(key=lambda m: (-len(m["code_triggers"]), -(m["volume_ratio"] or 0)))
+    cap = int(ctx.config.get("max_shortlist", 150))
+    if len(short) > cap:
+        warn.append("shortlist cut from %d to the top %d by triggers, then volume" % (len(short), cap))
+        short = short[:cap]
     save(ctx.cp("metrics.json"), allm)
     save(ctx.cp("scan_input.json"), {"cycle_id": cid, "engine_prompt": "prompts/scan.md",
                                      "MIN_LIQUIDITY": ctx.config["min_liquidity"],
@@ -511,7 +610,9 @@ def cmd_signal_input(ctx, a):
     for c in scan["items"]:
         bars = ctx.bars(c["symbol"])
         m = allm.get(c["symbol"]) or metrics(bars) or {}
-        items.append({"candidate": c, "bars": bars[-60:], "weekly_bars": weekly(bars),
+        items.append({"candidate": c, "bar_fields": ["date", "open", "high", "low", "close", "volume"],
+                      "bars": [[b["date"], b["open"], b["high"], b["low"], b["close"], b["volume"]] for b in bars[-60:]],
+                      "weekly_bars": weekly(bars),
                       "sma20": m.get("sma20"), "sma50": m.get("sma50"), "sma50_rising": m.get("sma50_rising"),
                       "atr14": m.get("atr14"), "volume_avg20": round(sum(b["volume"] for b in bars[-21:-1]) / 20)
                       if len(bars) >= 21 else None})
@@ -530,7 +631,9 @@ def cmd_plan_input(ctx, a):
             continue
         bars = ctx.bars(s["symbol"])
         m = allm.get(s["symbol"]) or metrics(bars) or {}
-        items.append({"signal": s, "bars": bars[-60:], "atr14": m.get("atr14"),
+        items.append({"signal": s, "bar_fields": ["date", "open", "high", "low", "close", "volume"],
+                      "bars": [[b["date"], b["open"], b["high"], b["low"], b["close"], b["volume"]] for b in bars[-60:]],
+                      "atr14": m.get("atr14"),
                       "sma20": m.get("sma20"), "sma50": m.get("sma50"), "last": m.get("last")})
     save(ctx.cp("plan_input.json"), {"cycle_id": ctx.cycle, "engine_prompt": "prompts/plan.md", "signals": items})
     print("%d PASS signals -> %s ; run PLAN, save plan.json, then `validate plan`"
@@ -684,10 +787,11 @@ def cmd_risk(ctx, a):
                    "events": load(ctx.p("events.json"), {})},
         "risk_rules": ctx.rules, "checks": [dict(v["checks"], symbol=v["symbol"]) for v in verdicts]})
     sig = {s["symbol"]: s for s in (load(ctx.cp("signal.valid.json")) or {"items": []})["items"]}
+    seen = {(r["date"], r["symbol"]) for r in journal_rows(ctx) if r.get("decision") == "Blocked"}
     for v in verdicts:
         mark = "APPROVED" if v["verdict"] == "APPROVED" else "BLOCKED "
         print("%s %-10s size %-6s risk %-9s %s" % (mark, v["symbol"], v["size"], v["risk_amount"], v["reason"]))
-        if v["verdict"] == "BLOCKED" and not a.no_journal:
+        if v["verdict"] == "BLOCKED" and not a.no_journal and (t.date().isoformat(), v["symbol"]) not in seen:
             s = sig.get(v["symbol"], {})
             journal_add(ctx, {"id": "%s:%s" % (ctx.cycle, v["symbol"]), "date": t.date().isoformat(),
                               "cycle_id": ctx.cycle, "symbol": v["symbol"], "setup": s.get("setup"),
@@ -1048,8 +1152,13 @@ def main(argv=None):
     i.add_argument("--preset", help="market preset from presets/ (e.g. nse)")
     f = sp.add_parser("fetch")
     f.add_argument("--symbols")
-    f.add_argument("--range", default="1y")
-    f.add_argument("--pause", type=float, default=0.3)
+    f.add_argument("--range", help="Yahoo range; default 1y for new symbols, 1mo to top up saved ones")
+    f.add_argument("--pause", type=float, default=0.0)
+    f.add_argument("--workers", type=int, default=6)
+    f.add_argument("--liquid-only", action="store_true", help="skip symbols under min_liquidity (from saved bars)")
+    u = sp.add_parser("universe", help="every NSE equity from EQUITY_L.csv")
+    u.add_argument("--nse", action="store_true", default=True)
+    u.add_argument("--series", default="EQ", help="comma list; BE,BZ are trade-to-trade")
     f.add_argument("--csv", help="folder of SYMBOL.csv files (date,open,high,low,close,volume) instead of Yahoo")
     sp.add_parser("prepare")
     v = sp.add_parser("validate")
@@ -1082,7 +1191,7 @@ def main(argv=None):
     sp.add_parser("status")
     a = ap.parse_args(argv)
     ctx = Ctx(a)
-    {"init": cmd_init, "fetch": cmd_fetch, "prepare": cmd_prepare, "validate": cmd_validate,
+    {"init": cmd_init, "fetch": cmd_fetch, "universe": cmd_universe, "prepare": cmd_prepare, "validate": cmd_validate,
      "signal-input": cmd_signal_input, "plan-input": cmd_plan_input, "risk": cmd_risk, "card": cmd_card,
      "decide": cmd_decide, "monitor": cmd_monitor, "notify": cmd_notify, "fill": cmd_fill,
      "move-stop": cmd_move_stop, "close": cmd_close, "review": cmd_review, "status": cmd_status}[a.cmd](ctx, a)

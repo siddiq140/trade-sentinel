@@ -13,6 +13,37 @@ MARKET DATA (code) -> 01 SCAN -> 02 SIGNAL -> 03 PLAN -> 04 RISK -> 05 MONITOR -
 - **A human places every order.** Nothing here talks to a broker.
 - Decision cards, a WAITING → OPEN → CLOSED monitor, Telegram alerts (optional), a journal in R and a go-live checklist.
 
+## Run it 24/7 on your computer (NSE)
+
+```bash
+git clone https://github.com/siddiq140/trade-sentinel && cd trade-sentinel
+pip install anthropic                 # optional: lets it run the Claude engines unattended
+export ANTHROPIC_API_KEY=...          # or `ant auth login`; Windows: set ANTHROPIC_API_KEY=...
+./start.sh                            # Windows: start.bat
+```
+
+Open **http://127.0.0.1:8247**. The first start downloads every NSE equity (about 2,400, series EQ)
+and a year of daily bars (about 2-3 minutes). Then, on NSE trading days (IST, weekends and NSE
+holidays skipped):
+
+| time (IST) | job |
+| --- | --- |
+| 08:30 | refresh the NSE list and every stock's bars |
+| 09:30-15:30, every 15 min | refresh liquid stocks (≥ ₹10 crore a day), scan, SIGNAL, PLAN, RISK, decision cards |
+| 09:15-15:35, every 5 min | watchlist and open trades: entry zone, stop, target, time stop, market shock alerts |
+| 15:45 | full refresh and an end-of-day cycle (plans for the next session) |
+
+Answer decision cards in the browser (Execute with your fill price, Watch, Pass), and move stops or
+close trades there. Without Claude credentials the data, scan and price alerts still run; the
+judgement steps wait. Telegram: set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` before starting.
+It stays up only while your computer is on and the window is open: keep it running with
+`nohup ./start.sh &`, a systemd service, or Windows Task Scheduler ("At log on").
+
+**Cost:** each 15-minute cycle sends up to ~25 charts to Claude. On Opus 5.5 that is roughly
+₹10-40 per cycle depending on how many stocks reach SIGNAL and PLAN. Lower it in
+`trader-247/config.json`: `scan_interval_min` (e.g. 30 or 60), `max_candidates`, or
+`claude_model`/`claude_effort` per engine.
+
 ## Install
 
 Clone this repo and open it in Claude Code: `.claude/skills` links to `skills/`, so the

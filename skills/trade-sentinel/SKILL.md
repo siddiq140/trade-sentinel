@@ -175,6 +175,23 @@ Stops only move one way (rule 11): `move-stop` refuses to widen one.
 
 ## Running it 24/7
 
+**Localhost server (NSE, recommended):** `./start.sh` (Windows `start.bat`) or
+`python3 ${CLAUDE_SKILL_DIR}/server.py`, then http://127.0.0.1:8247. It downloads every NSE
+equity (`engine.py universe`: EQUITY_L.csv, series EQ, ~2,400), refreshes bars 6 at a time
+(~2-3 min for all, ~1 min for the liquid ones), and runs on IST trading days: 08:30 full
+refresh, 09:30-15:30 a cycle every `scan_interval_min`, 09:15-15:35 the monitor every
+`monitor_interval_min`, 15:45 an end-of-day cycle. With `anthropic` installed and credentials
+set, `claude_engines.py` runs SCAN/SIGNAL/PLAN/RISK/MONITOR through the Claude API
+(`claude_model`, per-engine `claude_effort`, server-side refusal fallback on); each reply still
+goes through `engine.py validate`. Without credentials the code steps run and the cycle waits
+at SCAN: when the user asks, act as the engines on the current cycle exactly as in "Running
+one cycle" and the dashboard picks the files up. Decisions, fills, stop moves and closes can be
+made in the browser. The server binds to 127.0.0.1 and refuses POSTs without its own header.
+During market hours a stock's last bar is still forming: `volume_ratio` is projected from the
+share of the session elapsed (`intraday_partial`, raw value in `volume_ratio_raw`).
+
+Other ways:
+
 The stack is deliberately boring: a scheduler, a data source, Claude, a
 JSON store, a phone alert. Scan every 15 min in market hours; monitor every 5
 (crypto runs 24/7). Options, simplest first:
