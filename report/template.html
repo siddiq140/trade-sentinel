@@ -1,0 +1,256 @@
+<title>Trade Sentinel · NSE Cycle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: one column; market breadth, funnel, decision cards, all plans, scores, movers, full shortlist */
+:root{
+  --bg:#f5f7f8; --panel:#ffffff; --fg:#17212b; --muted:#5d6b78; --line:#dde3e8; --grid:#eceff2;
+  --accent:#1f6f8b; --accent-soft:#dcecf2; --up:#1b8a5a; --down:#c2413b; --warn:#b7791f; --zone:rgba(31,111,139,.14);
+  --f-display:"Space Grotesk",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --panel:#161e26; --fg:#e4eaef; --muted:#93a1ad; --line:#26313b; --grid:#1d2730;
+  --accent:#5fb3d0; --accent-soft:#17323f; --up:#3fbf86; --down:#ef6a62; --warn:#e0a84a; --zone:rgba(95,179,208,.16); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --panel:#161e26; --fg:#e4eaef; --muted:#93a1ad; --line:#26313b; --grid:#1d2730;
+  --accent:#5fb3d0; --accent-soft:#17323f; --up:#3fbf86; --down:#ef6a62; --warn:#e0a84a; --zone:rgba(95,179,208,.16); color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:30px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(26px,4vw,36px)} h2{font-size:20px} h3{font-size:16px}
+.eyebrow{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:68ch;margin:6px 0 0}
+section{display:grid;gap:12px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.num{font-variant-numeric:tabular-nums}
+.head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
+.note{font-size:13px;color:var(--muted);max-width:72ch;margin:0}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{display:grid;gap:4px}
+.tile .v{font:700 28px var(--f-display);font-variant-numeric:tabular-nums}
+.tile .d{font-size:13px;color:var(--muted)}
+.ad{height:10px;border-radius:5px;overflow:hidden;display:flex;background:var(--grid)}
+.ad i{display:block;height:100%}
+.funnel{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.fs{padding:12px 12px 14px;border-right:1px solid var(--line);display:grid;gap:4px;min-width:0}
+.fs:last-child{border-right:0;background:var(--accent-soft)}
+.fs .k{font:500 10.5px var(--f-mono);letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
+.fs .v{font:700 24px var(--f-display);font-variant-numeric:tabular-nums}
+.fs .d{font-size:12px;color:var(--muted)}
+.bar{height:5px;border-radius:3px;background:var(--grid);overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+@media (max-width:820px){.funnel{grid-template-columns:repeat(2,minmax(0,1fr))}.fs{border-bottom:1px solid var(--line)}.fs:nth-child(2n){border-right:0}}
+.chart{width:100%;overflow-x:auto}
+svg{display:block;width:100%;height:auto}
+svg text{fill:var(--muted);font:11px var(--f-mono)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{font:12.5px/1.7 var(--f-mono);white-space:pre-wrap;margin:0}
+.pill{display:inline-block;font:500 11px var(--f-mono);letter-spacing:.05em;padding:3px 8px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+.ok{background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}
+.no{background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)}
+.mid{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.up{color:var(--up)} .down{color:var(--down)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+td{padding:7px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.r,th.r{text-align:right}
+.tbl{overflow-x:auto}
+.scroll{max-height:520px;overflow:auto}
+input[type=search]{font:14px var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);width:min(100%,320px)}
+input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:14px}
+.foot{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;display:grid;gap:6px}
+.foot ul{margin:0;padding-left:18px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow">NSE</div>
+    <h1>Trade Sentinel · every NSE stock</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <section>
+    <h2>The whole market that day</h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel">
+      <div class="head"><h3>How far each stock moved</h3><span class="note" id="histNote"></span></div>
+      <div class="chart" id="hist"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>From every listed stock to a decision</h2>
+    <div class="funnel" id="funnel"></div>
+  </section>
+
+  <section>
+    <div class="head"><h2>Waiting for your answer</h2><span class="note">Approved by the code gates and the second-opinion risk check.</span></div>
+    <div class="plan-grid" id="cards"></div>
+  </section>
+
+  <section>
+    <div class="head"><h2>Every plan and why it stopped</h2></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--zone);height:10px"></i>Entry zone</span>
+      <span><i class="sw" style="background:var(--up)"></i>Target</span>
+      <span><i class="sw" style="background:var(--down)"></i>Stop</span>
+      <span><i class="sw" style="background:var(--accent);height:8px;width:8px;border-radius:50%"></i>Last close</span>
+    </div>
+    <div class="plan-grid" id="plans"></div>
+  </section>
+
+  <section>
+    <div class="head"><h2>Signal scores</h2><div class="legend"><span><i class="sw" style="background:var(--accent)"></i>Pass (70+)</span><span><i class="sw" style="background:var(--muted)"></i>Filtered</span></div></div>
+    <div class="panel"><div class="chart" id="scores"></div></div>
+    <div class="panel tbl"><table id="sigs"></table></div>
+  </section>
+
+  <section>
+    <h2>Biggest liquid movers</h2>
+    <div class="grid2">
+      <div class="panel tbl"><h3 style="margin-bottom:8px">Gainers</h3><table id="gain"></table></div>
+      <div class="panel tbl"><h3 style="margin-bottom:8px">Losers</h3><table id="lose"></table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><h2>Full scan shortlist</h2><input type="search" id="q" placeholder="Filter by symbol or trigger" aria-label="Filter the shortlist"></div>
+    <div class="panel tbl scroll"><table id="short"></table></div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+const D = __DATA__;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (n,d=2) => n==null ? "–" : Number(n).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sh = s => String(s||"").replace(/\.NS$/,"");
+const sign = n => n==null ? "–" : (n>0?"+":"")+fmt(n)+"%";
+const NS="http://www.w3.org/2000/svg";
+function el(t,a,p,x){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(x!=null)e.textContent=x;p&&p.appendChild(e);return e;}
+const B = D.breadth, F = D.funnel;
+const dataDay = new Date(B.date+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+
+$("eyebrow").textContent = `NSE · data to ${dataDay} · cycle ${D.cycle_id}`;
+$("lede").textContent = `All ${F.universe.toLocaleString("en-IN")} NSE equities (series EQ) checked on daily bars. Code did every number; Claude judged the charts; nothing has been ordered. Nifty 50 closed ${fmt(D.index.close)} (${sign(D.index.chg)}).`;
+
+// tiles
+const total=B.advancers+B.decliners+B.unchanged;
+$("tiles").innerHTML = [
+  ["Stocks checked", B.stocks.toLocaleString("en-IN"), "every NSE equity with prices"],
+  ["Advancers : decliners", `${B.advancers} : ${B.decliners}`, `<div class="ad" aria-hidden="true"><i style="width:${B.advancers/total*100}%;background:var(--up)"></i><i style="width:${B.unchanged/total*100}%;background:var(--muted)"></i><i style="width:${B.decliners/total*100}%;background:var(--down)"></i></div>`],
+  ["Above 50-day average", fmt(B.above_sma50_pct,0)+"%", "share of stocks in an uptrend"],
+  ["Near 20-day high / low", `${B.near_20d_high} / ${B.near_20d_low}`, `${B.up_5pct} up 5%+, ${B.down_5pct} down 5%+`],
+].map(([k,v,d])=>`<div class="panel tile"><span class="eyebrow">${k}</span><span class="v">${v}</span><span class="d">${d}</span></div>`).join("");
+
+// histogram
+(function(){
+  const labels=["< −5%","−5 to −3","−3 to −1","−1 to 0","0 to 1","1 to 3","3 to 5","> 5%"], h=B.histogram, W=900,H=220,L=40,R=10,T=20,Bm=30;
+  const max=Math.max(...h), raw=max/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), st=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=raw), top=Math.ceil(max/st)*st;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Number of NSE stocks by one-day change"});
+  const y=v=>T+(H-T-Bm)*(1-v/top), bw=(W-L-R)/h.length;
+  for(let v=0;v<=top;v+=st){el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:"var(--grid)"},svg);el("text",{x:L-6,y:y(v)+4,"text-anchor":"end"},svg,v);}
+  h.forEach((n,i)=>{const x=L+i*bw+6, up=i>=4;
+    el("rect",{x,y:y(n),width:bw-12,height:y(0)-y(n),rx:3,fill:up?"var(--up)":"var(--down)","fill-opacity":.85},svg);
+    el("text",{x:x+(bw-12)/2,y:y(n)-5,"text-anchor":"middle",style:"fill:var(--fg)"},svg,n);
+    el("text",{x:x+(bw-12)/2,y:H-10,"text-anchor":"middle"},svg,labels[i]);});
+  $("hist").appendChild(svg);
+  $("histNote").textContent=`${B.decliners} fell, ${B.advancers} rose, ${B.unchanged} unchanged`;
+})();
+
+// funnel
+const steps=[["NSE equities",F.universe,"series EQ"],["Liquid",F.liquid,`≥ ₹${fmt(D.config.min_liquidity/1e7,0)} cr traded a day`],["Code shortlist",F.shortlist,"volume, highs/lows, big moves"],["Scan picks",F.scan,"ranked by triggers"],["Signals pass",F.signal_pass,`score ≥ ${D.config.pass_mark}`],["Planned",F.planned,"entry, stop, target"],["Risk approved",F.approved,"every gate"],["For you",F.cards,"decision cards"]];
+$("funnel").innerHTML=steps.map(([k,v,d])=>`<div class="fs"><span class="k">${k}</span><span class="v">${Number(v).toLocaleString("en-IN")}</span><div class="bar"><i style="width:${Math.max(1,Math.sqrt(v/F.universe)*100)}%"></i></div><span class="d">${d}</span></div>`).join("");
+
+// candle chart
+function candles(sym, p, H=250){
+  const b=D.bars[sym]||[], W=620,L=6,R=70,T=10,Bm=24;
+  const lv=p&&p.entry_zone?[p.stop,p.target,...p.entry_zone]:[];
+  const lo=Math.min(...b.map(r=>r.low),...lv), hi=Math.max(...b.map(r=>r.high),...lv), pad=(hi-lo)*.05, y0=lo-pad, y1=hi+pad;
+  const y=v=>T+(H-T-Bm)*(1-(v-y0)/(y1-y0)), step=(W-L-R)/b.length, x=i=>L+step*(i+.5);
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":`${sh(sym)} daily candles with plan levels`});
+  const raw=(y1-y0)/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), st=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=raw);
+  for(let v=Math.ceil(y0/st)*st; v<=y1; v+=st){el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:"var(--grid)"},svg);el("text",{x:W-R+5,y:y(v)+4},svg,fmt(v,v<100?1:0));}
+  if(p&&p.entry_zone) el("rect",{x:L,y:y(p.entry_zone[1]),width:W-L-R,height:Math.max(2,y(p.entry_zone[0])-y(p.entry_zone[1])),fill:"var(--zone)"},svg);
+  b.forEach((r,i)=>{const up=r.close>=r.open,c=up?"var(--up)":"var(--down)";
+    el("line",{x1:x(i),x2:x(i),y1:y(r.high),y2:y(r.low),stroke:c},svg);
+    el("rect",{x:x(i)-step*.32,y:y(Math.max(r.open,r.close)),width:step*.64,height:Math.max(1,Math.abs(y(r.open)-y(r.close))),fill:c},svg);
+    if(i%15===0||i===b.length-1) el("text",{x:x(i),y:H-6,"text-anchor":"middle"},svg,r.date.slice(5));});
+  if(p&&p.entry_zone){
+    const line=(v,c,t,below)=>{el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:c,"stroke-width":1.5},svg);el("text",{x:W-R-4,y:below?y(v)+13:y(v)-5,"text-anchor":"end",style:`fill:${c};font-weight:500`},svg,`${t} ${fmt(v)}`);};
+    line(p.target,"var(--up)","target"); line(p.stop,"var(--down)","stop",true);
+  }
+  if(b.length){const l=b[b.length-1]; el("circle",{cx:x(b.length-1),cy:y(l.close),r:4,fill:"var(--accent)",stroke:"var(--panel)","stroke-width":2},svg);}
+  return svg;
+}
+
+// cards
+const sigBy=Object.fromEntries(D.signals.map(s=>[s.symbol,s]));
+const riskBy=Object.fromEntries(D.risk.map(r=>[r.symbol,r]));
+const planBy=Object.fromEntries(D.plans.map(p=>[p.symbol,p]));
+$("cards").innerHTML = D.cards.length ? "" : `<div class="panel note">No plan passed every gate this cycle.</div>`;
+D.cards.forEach(c=>{
+  const s=sigBy[c.symbol]||{}, div=document.createElement("div"); div.className="panel"; div.style.display="grid"; div.style.gap="12px";
+  div.innerHTML=`<div class="head"><h3>${esc(sh(c.symbol))}</h3><span class="pill ok">${esc(s.setup)} · score ${s.score}</span></div><div class="chart"></div><pre class="card"></pre>`;
+  div.querySelector(".chart").appendChild(candles(c.symbol, planBy[c.symbol]));
+  div.querySelector("pre").textContent=c.card;
+  $("cards").appendChild(div);
+});
+
+// all plans
+D.plans.forEach(p=>{
+  const r=riskBy[p.symbol], s=sigBy[p.symbol]||{}, div=document.createElement("div"); div.className="panel"; div.style.display="grid"; div.style.gap="10px";
+  let tag, why;
+  if(p.status==="NO_PLAN"){tag=`<span class="pill mid">No plan</span>`; why=p.reason;}
+  else if(r&&r.verdict==="APPROVED"){tag=`<span class="pill ok">Approved</span>`; why=`Size ${r.size}, risk ₹${fmt(r.risk_amount)}, R:R ${r.checks.rr}.`;}
+  else {tag=`<span class="pill no">Blocked</span>`; const f=(r?r.gates:[]).filter(g=>!g.pass);
+    why=f.map(g=>g.id==="G2_EXPOSURE"?`Needs ${r.size} shares, ${fmt(g.value,0)}% of the account (limit ${g.limit}%).`:`${g.id}: ${g.value} vs ${g.limit}`).join(" ");}
+  div.innerHTML=`<div class="head"><h3>${esc(sh(p.symbol))} <span class="note">${esc(s.setup||"")} · ${s.score??""}</span></h3>${tag}</div><div class="chart"></div>
+    ${p.entry_zone?`<div class="note num">Entry ${fmt(p.entry_zone[0])}–${fmt(p.entry_zone[1])} · stop ${fmt(p.stop)} · target ${fmt(p.target)} · R:R ${p.rr}</div>`:""}
+    <p class="note">${esc(why)}</p>`;
+  div.querySelector(".chart").appendChild(candles(p.symbol, p, 210));
+  $("plans").appendChild(div);
+});
+
+// scores
+(function(){
+  const s=[...D.signals].sort((a,b)=>b.score-a.score), rowH=22, W=900, L=120, R=150, H=s.length*rowH+30;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Signal scores by stock"});
+  const x=v=>L+(W-L-R)*v/100;
+  [0,25,50,70,100].forEach(v=>{el("line",{x1:x(v),x2:x(v),y1:4,y2:H-22,stroke:v===70?"var(--accent)":"var(--grid)","stroke-dasharray":v===70?"4 3":"0"},svg);el("text",{x:x(v),y:H-6,"text-anchor":"middle"},svg,v===70?"70 pass":v);});
+  s.forEach((d,i)=>{const y=6+i*rowH, pass=d.status==="PASS";
+    el("text",{x:L-10,y:y+13,"text-anchor":"end",style:"fill:var(--fg)"},svg,sh(d.symbol));
+    el("rect",{x:L,y:y+2,width:Math.max(2,x(d.score)-L),height:14,rx:3,fill:pass?"var(--accent)":"var(--muted)","fill-opacity":pass?1:.35},svg);
+    el("text",{x:x(d.score)+6,y:y+13},svg,`${d.score} · ${d.setup}`);});
+  $("scores").appendChild(svg);
+  $("sigs").innerHTML=`<thead><tr><th>Stock</th><th>Setup</th><th class="r">Score</th><th>Result</th><th>Why</th></tr></thead><tbody>${
+    s.map(d=>{const r=riskBy[d.symbol], p=planBy[d.symbol];
+      let res=d.status==="PASS"?(p&&p.status==="NO_PLAN"?["mid","No plan"]:(r?(r.verdict==="APPROVED"?["ok","Approved"]:["no","Blocked"]):["ok","Pass"])):["mid","Filtered"];
+      return `<tr><td><b>${esc(sh(d.symbol))}</b></td><td>${esc(d.setup)}</td><td class="r num">${d.score}</td><td><span class="pill ${res[0]}">${res[1]}</span></td><td>${esc(d.reason||d.evidence)}</td></tr>`;}).join("")}</tbody>`;
+})();
+
+// movers
+const mv=rows=>`<thead><tr><th>Stock</th><th class="r">Close</th><th class="r">1-day</th><th class="r">₹ cr / day</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(sh(r.symbol))}</b><div class="note">${esc(r.name||"")}</div></td><td class="r num">${fmt(r.close)}</td><td class="r num ${r.chg>=0?"up":"down"}">${sign(r.chg)}</td><td class="r num">${fmt(r.tv_cr,0)}</td></tr>`).join("")}</tbody>`;
+$("gain").innerHTML=mv(B.top_gainers); $("lose").innerHTML=mv(B.top_losers);
+
+// shortlist
+function renderShort(q=""){
+  q=q.trim().toLowerCase();
+  const rows=D.shortlist.filter(m=>!q||sh(m.symbol).toLowerCase().includes(q)||(m.code_triggers||[]).join(" ").toLowerCase().includes(q));
+  $("short").innerHTML=`<thead><tr><th>Stock</th><th class="r">Last</th><th class="r">1-day</th><th class="r">5-day</th><th class="r">Volume vs avg</th><th class="r">₹ cr / day</th><th>Triggers</th></tr></thead><tbody>${
+    rows.map(m=>`<tr><td><b>${esc(sh(m.symbol))}</b></td><td class="r num">${fmt(m.last)}</td><td class="r num ${m.chg_1d_pct>=0?"up":"down"}">${sign(m.chg_1d_pct)}</td><td class="r num ${m.chg_5d_pct>=0?"up":"down"}">${sign(m.chg_5d_pct)}</td><td class="r num">${fmt(m.volume_ratio)}×</td><td class="r num">${fmt(m.avg_traded_value/1e7,0)}</td><td>${(m.code_triggers||[]).map(t=>`<span class="pill mid">${esc(t.replace(/_/g," ").toLowerCase())}</span>`).join(" ")}</td></tr>`).join("")
+    || `<tr><td colspan="7" class="note">No stock matches “${esc(q)}”.</td></tr>`}</tbody>`;
+}
+renderShort(); $("q").addEventListener("input",e=>renderShort(e.target.value));
+
+// footer
+$("foot").innerHTML=`<b>Not checked this cycle</b><ul>${D.warnings.map(w=>`<li>${esc(w)}</li>`).join("")}<li>Account size assumed at ₹${fmt(D.account.equity,0)}; position limits scale with it.</li></ul>
+  <span>Snapshot saved in the trade-sentinel repo: snapshots/${esc(B.date)}/. Educational, not investment advice. You place every order yourself.</span>`;
+</script>

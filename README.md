@@ -13,6 +13,16 @@ MARKET DATA (code) -> 01 SCAN -> 02 SIGNAL -> 03 PLAN -> 04 RISK -> 05 MONITOR -
 - **A human places every order.** Nothing here talks to a broker.
 - Decision cards, a WAITING → OPEN → CLOSED monitor, Telegram alerts (optional), a journal in R and a go-live checklist.
 
+## Saved results
+
+Every cycle is saved as one JSON file in [`snapshots/`](snapshots/) (`latest.json` plus one file per
+cycle under the trading date): whole-market breadth for all NSE equities, the scan shortlist, every
+signal, plan and risk verdict, the decision cards, and chart data for the planned stocks. Rebuild the
+report page from any snapshot with `python3 report/build_report.py [snapshot.json]`
+(writes `report/trade-sentinel.html`; open it in a browser).
+
+After a cycle: `python3 skills/trade-sentinel/engine.py snapshot && python3 report/build_report.py`.
+
 ## Run it 24/7 on your computer (NSE)
 
 ```bash

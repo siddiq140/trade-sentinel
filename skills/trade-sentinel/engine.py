@@ -1130,6 +1130,71 @@ def cmd_review(ctx, a):
     print("  [ ] start at half your planned size for the first month (set risk_per_trade_pct)")
 
 
+def cmd_snapshot(ctx, a):
+    """One self-contained JSON of the current cycle plus whole-market breadth, for the repo and the report."""
+    c = lambda n: load(ctx.cp(n)) or {}
+    rows = []
+    for u in ctx.universe:
+        b = ctx.bars(u["symbol"])
+        if len(b) < 2:
+            continue
+        m = metrics(b) if len(b) >= 21 else None
+        tv = sum(x["close"] * x["volume"] for x in b[-20:]) / min(20, len(b))
+        rows.append({"symbol": u["symbol"], "name": u.get("name"), "date": b[-1]["date"], "close": b[-1]["close"],
+                     "chg": r2(pct(b[-1]["close"], b[-2]["close"])), "tv_cr": round(tv / 1e7, 1),
+                     "above50": (b[-1]["close"] > m["sma50"]) if m and m.get("sma50") else None,
+                     "hi20": bool(m and m["dist_20d_high_pct"] is not None and m["dist_20d_high_pct"] >= -1.0),
+                     "lo20": bool(m and m["dist_20d_low_pct"] is not None and m["dist_20d_low_pct"] <= 1.0)})
+    from collections import Counter
+    day = Counter(r["date"] for r in rows).most_common(1)[0][0] if rows else None
+    today = [r for r in rows if r["date"] == day and r["chg"] is not None]
+    liquid = [r for r in today if r["tv_cr"] >= ctx.config["min_liquidity"] / 1e7]
+    a50 = [r for r in today if r["above50"] is not None]
+    breadth = {"date": day, "stocks": len(today), "advancers": sum(r["chg"] > 0 for r in today),
+               "decliners": sum(r["chg"] < 0 for r in today), "unchanged": sum(r["chg"] == 0 for r in today),
+               "above_sma50_pct": r2(100 * sum(r["above50"] for r in a50) / len(a50)) if a50 else None,
+               "near_20d_high": sum(r["hi20"] for r in today), "near_20d_low": sum(r["lo20"] for r in today),
+               "up_5pct": sum(r["chg"] >= 5 for r in today), "down_5pct": sum(r["chg"] <= -5 for r in today),
+               "upper_circuit_like": sum(r["chg"] >= 19.9 for r in today),
+               "histogram": [sum(lo <= r["chg"] < hi for r in today) for lo, hi in
+                             ((-99, -5), (-5, -3), (-3, -1), (-1, 0), (0, 1), (1, 3), (3, 5), (5, 99))],
+               "top_gainers": sorted(liquid, key=lambda r: -r["chg"])[:12],
+               "top_losers": sorted(liquid, key=lambda r: r["chg"])[:12]}
+    idx = ctx.bars(ctx.config.get("index_symbol", "")) if ctx.config.get("index_symbol") else []
+    plans = c("plan.valid.json").get("items", [])
+    chart_syms = [p["symbol"] for p in plans]
+    snap = {"generated_at": iso(now_utc()), "cycle_id": ctx.cycle, "market": ctx.config.get("market"),
+            "account": ctx.account, "rules": ctx.rules,
+            "config": {k: ctx.config.get(k) for k in ("min_liquidity", "pass_mark", "max_shortlist", "max_candidates")},
+            "index": {"symbol": ctx.config.get("index_symbol"),
+                      "close": idx[-1]["close"] if idx else None,
+                      "chg": r2(pct(idx[-1]["close"], idx[-2]["close"])) if len(idx) > 1 else None},
+            "funnel": {"universe": len(ctx.universe), "with_data": len(rows), "liquid": len(c("metrics.json")),
+                       "shortlist": len(c("scan_input.json").get("universe", [])),
+                       "scan": len(c("scan.valid.json").get("items", [])),
+                       "signal_pass": sum(1 for x in c("signal.valid.json").get("items", []) if x["status"] == "PASS"),
+                       "planned": sum(1 for p in plans if p.get("status") == "PLANNED"),
+                       "approved": sum(1 for v in c("risk_checks.json").get("items", []) if v["verdict"] == "APPROVED"),
+                       "cards": len(load(ctx.cp("cards.json")) or [])},
+            "breadth": breadth,
+            "shortlist": [{k: m.get(k) for k in ("symbol", "last", "chg_1d_pct", "chg_5d_pct", "volume_ratio",
+                                                 "avg_traded_value", "code_triggers")}
+                          for m in c("scan_input.json").get("universe", [])],
+            "signals": c("signal.valid.json").get("items", []), "plans": plans,
+            "risk": c("risk_checks.json").get("items", []), "risk_opinion": c("risk.valid.json").get("items", []),
+            "cards": load(ctx.cp("cards.json")) or [],
+            "warnings": sorted(set(c("scan.valid.json").get("warnings", []) + c("signal.valid.json").get("warnings", [])
+                                   + c("risk.valid.json").get("warnings", []))),
+            "bars": {s: ctx.bars(s)[-60:] for s in chart_syms}}
+    out = a.out
+    day_dir = os.path.join(out, (day or "unknown"))
+    save(os.path.join(day_dir, (ctx.cycle or "cycle").replace(":", "") + ".json"), snap, compact=True)
+    save(os.path.join(out, "latest.json"), snap, compact=True)
+    print("snapshot: %d stocks (%s), %d advancers / %d decliners, %d plans, %d approved -> %s/latest.json"
+          % (breadth["stocks"], day, breadth["advancers"], breadth["decliners"], snap["funnel"]["planned"],
+             snap["funnel"]["approved"], out))
+
+
 def cmd_status(ctx, a):
     print("dir %s  cycle %s  equity %s" % (ctx.dir, ctx.cycle, ctx.account.get("equity")))
     for w in load(ctx.p("watchlist.json"), []):
@@ -1189,12 +1254,15 @@ def main(argv=None):
     rv = sp.add_parser("review")
     rv.add_argument("--last", type=int, default=30)
     sp.add_parser("status")
+    sn = sp.add_parser("snapshot", help="write the cycle + market breadth to snapshots/ for the repo")
+    sn.add_argument("--out", default="snapshots")
     a = ap.parse_args(argv)
     ctx = Ctx(a)
     {"init": cmd_init, "fetch": cmd_fetch, "universe": cmd_universe, "prepare": cmd_prepare, "validate": cmd_validate,
      "signal-input": cmd_signal_input, "plan-input": cmd_plan_input, "risk": cmd_risk, "card": cmd_card,
      "decide": cmd_decide, "monitor": cmd_monitor, "notify": cmd_notify, "fill": cmd_fill,
-     "move-stop": cmd_move_stop, "close": cmd_close, "review": cmd_review, "status": cmd_status}[a.cmd](ctx, a)
+     "move-stop": cmd_move_stop, "close": cmd_close, "review": cmd_review, "status": cmd_status,
+     "snapshot": cmd_snapshot}[a.cmd](ctx, a)
 
 
 if __name__ == "__main__":
