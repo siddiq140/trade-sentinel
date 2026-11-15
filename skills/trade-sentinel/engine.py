@@ -292,6 +292,15 @@ def _num(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
 
 
+def swing(ctx):
+    """Swing settings when config style is "swing", else None."""
+    c = ctx.config
+    if c.get("style") != "swing":
+        return None
+    return {"max_hold_bars": int(c.get("max_hold_bars", 10)), "max_wait_bars": int(c.get("max_wait_bars", 3)),
+            "max_target_atr": float(c.get("max_target_atr", 3.0)), "max_entry_gap_atr": float(c.get("max_entry_gap_atr", 1.0))}
+
+
 def validate_item(engine, it, ctx):
     """Return a list of problems; empty means the item may pass to the next engine."""
     e = []
@@ -369,6 +378,13 @@ def validate_item(engine, it, ctx):
                 e.append("rr %s does not match code's %.2f" % (it.get("rr"), rr))
         if not isinstance(it.get("time_stop_bars"), int) or it["time_stop_bars"] < 1:
             e.append("time_stop_bars must be a positive integer")
+        sw = swing(ctx)
+        if sw:
+            if isinstance(it.get("time_stop_bars"), int) and it["time_stop_bars"] > sw["max_wait_bars"]:
+                e.append("swing: time_stop_bars (bars to wait for entry) must be <= %d" % sw["max_wait_bars"])
+            mh = it.get("max_hold_bars")
+            if not isinstance(mh, int) or not 1 <= mh <= sw["max_hold_bars"]:
+                e.append("swing: max_hold_bars must be an integer 1-%d" % sw["max_hold_bars"])
         cm = it.get("change_my_mind")
         if not isinstance(cm, list) or not 1 <= len(cm) <= 3:
             e.append("change_my_mind must list 1-3 events")
@@ -745,6 +761,20 @@ def compute_risk(ctx, plans, t):
             {"id": "G5_SECTOR", "pass": sec_count < R["max_per_sector"], "value": sec_count,
              "limit": "< %s (%s)" % (R["max_per_sector"], sec or "no sector")},
         ]
+        sw = swing(ctx)
+        if sw:
+            atr, last = m.get("atr14"), m.get("last")
+            gap = None if not atr or last is None else (
+                0.0 if z[0] <= last <= z[1] else min(abs(last - z[0]), abs(last - z[1])) / atr)
+            reach = None if not atr else abs(p["target"] - mid) / atr
+            g += [
+                {"id": "G6_ENTRY_NEAR", "pass": gap is not None and gap <= sw["max_entry_gap_atr"],
+                 "value": r2(gap), "limit": "<= %s ATR from last close %s" % (sw["max_entry_gap_atr"], last)},
+                {"id": "G6_TARGET_REACH", "pass": reach is not None and reach <= sw["max_target_atr"] + 1e-9,
+                 "value": r2(reach), "limit": "<= %s ATR (reachable in %d days)" % (sw["max_target_atr"], sw["max_hold_bars"])},
+                {"id": "G6_HOLD", "pass": isinstance(p.get("max_hold_bars"), int) and p["max_hold_bars"] <= sw["max_hold_bars"],
+                 "value": p.get("max_hold_bars"), "limit": "<= %d trading days" % sw["max_hold_bars"]},
+            ]
         failed = [x for x in g if not x["pass"]]
         verdict = "BLOCKED" if failed else "APPROVED"
         reason = "All gates pass." if not failed else "; ".join(_why(x) for x in failed)
@@ -770,7 +800,9 @@ def _why(gate):
              "G2_LEVERAGE": "would need leverage", "G3_RR": "R:R below the minimum",
              "G4_DAILY": "daily loss limit", "G4_WEEKLY": "weekly loss limit hit",
              "G4_POSITIONS": "max open positions", "G5_ATR": "ATR too high vs normal",
-             "G5_EVENT": "event inside the blackout", "G5_SECTOR": "sector already full"}
+             "G5_EVENT": "event inside the blackout", "G5_SECTOR": "sector already full",
+             "G6_ENTRY_NEAR": "entry too far from today's price for a swing",
+             "G6_TARGET_REACH": "target too far to reach in the hold window", "G6_HOLD": "hold longer than allowed"}
     return "%s %s (%s vs %s)" % (gate["id"], names.get(gate["id"], ""), gate["value"], gate["limit"])
 
 
@@ -882,7 +914,8 @@ def cmd_decide(ctx, a):
     item = {"symbol": a.symbol, "sector": ctx.sector.get(a.symbol), "direction": p["direction"],
             "entry_zone": p["entry_zone"], "stop": p["stop"], "initial_stop": p["stop"], "target": p["target"],
             "invalidation": p["invalidation"], "change_my_mind": p["change_my_mind"], "thesis": p["thesis"],
-            "time_stop_bars": p["time_stop_bars"], "planned_date": t.date().isoformat(), "size": v["size"],
+            "time_stop_bars": p["time_stop_bars"], "max_hold_bars": p.get("max_hold_bars"),
+            "planned_date": t.date().isoformat(), "size": v["size"],
             "journal_id": rid, "alerts_sent": [], "state": "WAITING", "entry_price": None}
     if choice == "EXECUTE":
         item["state"] = "OPEN"
@@ -945,6 +978,10 @@ def cmd_monitor(ctx, a):
         act = _active(w, price)
         if w["state"] == "WAITING" and len(since) >= w["time_stop_bars"]:
             act["TIME_STOP"] = w["time_stop_bars"]
+        if w["state"] == "OPEN" and w.get("max_hold_bars") and w.get("opened_at"):
+            held = [b for b in (recent if s not in prices else ctx.bars(s)) if b["date"] > w["opened_at"][:10]]
+            if len(held) >= w["max_hold_bars"]:
+                act["TIME_STOP"] = "hold %d" % w["max_hold_bars"]
         if idx_move is not None and abs(idx_move) >= ctx.config["market_shock_pct"]:
             act["MARKET_SHIFT"] = "%s:%s" % (idx, t.date().isoformat())
         # re-arm price levels the price has left (one alert per crossing)
@@ -988,7 +1025,9 @@ def _msg(w, typ, price, lvl, idx_move):
         "ENTRY_ZONE_REACHED": "%s in entry zone %s–%s (now %s). Stop %s, target %s." % (s, z[0], z[1], r2(price), w["stop"], w["target"]),
         "TARGET_HIT": "%s at target %s (now %s). Plan says take it." % (s, w["target"], r2(price)),
         "STOP_HIT": "%s hit stop %s (now %s). The idea is wrong: get out." % (s, w["stop"], r2(price)),
-        "TIME_STOP": "%s: %s bars with no entry. Plan expired (now %s, zone %s–%s)." % (s, lvl, r2(price), z[0], z[1]),
+        "TIME_STOP": ("%s: held %s trading days, the swing limit. Exit at the close (now %s, entry %s)." % (
+            s, str(lvl).split()[-1], r2(price), w.get("entry_price")) if str(lvl).startswith("hold") else
+            "%s: %s bars with no entry. Plan expired (now %s, zone %s–%s)." % (s, lvl, r2(price), z[0], z[1])),
         "MARKET_SHIFT": "Index moved %s%% today. Re-check %s (now %s, stop %s)." % (idx_move, s, r2(price), w["stop"]),
     }[typ][:239]
 
@@ -1163,7 +1202,11 @@ def cmd_snapshot(ctx, a):
     idx = ctx.bars(ctx.config.get("index_symbol", "")) if ctx.config.get("index_symbol") else []
     plans = c("plan.valid.json").get("items", [])
     chart_syms = [p["symbol"] for p in plans]
+    allm = c("metrics.json")
     snap = {"generated_at": iso(now_utc()), "cycle_id": ctx.cycle, "market": ctx.config.get("market"),
+            "style": ctx.config.get("style", "position"), "swing": swing(ctx),
+            "plan_context": {p["symbol"]: {"last": (allm.get(p["symbol"]) or {}).get("last"),
+                                           "atr14": (allm.get(p["symbol"]) or {}).get("atr14")} for p in plans},
             "account": ctx.account, "rules": ctx.rules,
             "config": {k: ctx.config.get(k) for k in ("min_liquidity", "pass_mark", "max_shortlist", "max_candidates")},
             "index": {"symbol": ctx.config.get("index_symbol"),

@@ -60,6 +60,11 @@ def build_system(engine, payload, config):
     market = config.get("market")
     if market:
         text += "\nMARKET\n%s. Prices are in the market's own currency.\n" % market
+    if config.get("style") == "swing" and engine in ("signal", "plan", "risk"):
+        add = open(os.path.join(HERE, "prompts", "swing.md")).read()
+        vals = {"MAX_HOLD_BARS": config.get("max_hold_bars", 10), "MAX_WAIT_BARS": config.get("max_wait_bars", 3),
+                "MAX_TARGET_ATR": config.get("max_target_atr", 3.0), "MAX_ENTRY_GAP_ATR": config.get("max_entry_gap_atr", 1.0)}
+        text += "\n" + re.sub(r"\{\{(\w+)\}\}", lambda m: str(vals.get(m.group(1), m.group(0))), add)
     if config.get("allow_short") is False:
         text += "Overnight short positions are not possible in this market: prefer LONG setups.\n"
     return text + ENVELOPE % (payload.get("cycle_id", ""), engine)

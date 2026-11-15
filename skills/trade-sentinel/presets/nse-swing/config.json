@@ -1,0 +1,29 @@
+{
+  "market": "NSE cash equities (all EQ series), swing trades held 1-10 trading days",
+  "index_symbol": "^NSEI",
+  "min_liquidity": 100000000,
+  "max_candidates": 25,
+  "pass_mark": 70,
+  "market_shock_pct": 1.5,
+  "monitor_interval_min": 5,
+  "rr_tolerance": 0.05,
+  "allow_short": false,
+  "max_shortlist": 150,
+  "utc_offset_min": 330,
+  "session_open": "09:15",
+  "session_close": "15:30",
+  "scan_interval_min": 15,
+  "claude_model": "claude-opus-5-5",
+  "claude_effort": {
+    "scan": "low",
+    "signal": "high",
+    "plan": "high",
+    "risk": "medium",
+    "monitor": "low"
+  },
+  "style": "swing",
+  "max_hold_bars": 10,
+  "max_wait_bars": 3,
+  "max_target_atr": 3.0,
+  "max_entry_gap_atr": 1.0
+}

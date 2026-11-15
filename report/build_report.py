@@ -3,7 +3,9 @@
 
     python3 report/build_report.py                     # snapshots/latest.json -> report/trade-sentinel.html
     python3 report/build_report.py --images            # also PNGs + README.md in snapshots/<date>/ and snapshots/
-    python3 report/build_report.py <snapshot.json> [--out page.html] [--images]
+    python3 report/build_report.py <snapshot.json> [--out page.html] [--images] [--snapshots-dir DIR]
+    python3 report/build_report.py swing/snapshots/latest.json --out swing/report/trade-sentinel-swing.html \
+        --snapshots-dir swing/snapshots --images          # the 1-10 day swing run
 
 GitHub shows code, not pages, for .html and .json files. The images and README.md files are
 what you see when you open the snapshots/ folder on github.com. --images needs Node with
@@ -19,11 +21,17 @@ ROOT = os.path.dirname(HERE)
 args = [a for a in sys.argv[1:]]
 images = "--images" in args
 out = args[args.index("--out") + 1] if "--out" in args else os.path.join(HERE, "trade-sentinel.html")
-pos = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] != "--out")]
+snap_dir = args[args.index("--snapshots-dir") + 1] if "--snapshots-dir" in args else os.path.join(ROOT, "snapshots")
+pos = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--out", "--snapshots-dir"))]
 src = pos[0] if pos else os.path.join(ROOT, "snapshots", "latest.json")
 
 data = json.load(open(src))
+SWING = data.get("style") == "swing"
+NAME = "Trade Sentinel Swing" if SWING else "Trade Sentinel"
 html = open(os.path.join(HERE, "template.html")).read()
+if SWING:
+    html = html.replace("<title>Trade Sentinel · NSE Cycle</title>", "<title>Trade Sentinel · NSE Swing</title>", 1)
+os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
 payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")  # keep "</script>" in text from closing the script
 open(out, "w").write(html.replace("__DATA__", payload))
 print("report: %s -> %s (%d KB)" % (src, out, os.path.getsize(out) // 1024))
@@ -54,8 +62,13 @@ def readme(data, img_prefix, title):
         "%s NSE equities → %s liquid → %s shortlisted → %s scanned → %s signals passed → %s planned → "
         "**%s approved**" % (f"{f['universe']:,}", f["liquid"], f["shortlist"], f["scan"], f["signal_pass"],
                              f["planned"], f["approved"]), "",
-        "## Waiting for your answer", "",
     ]
+    if data.get("swing"):
+        sw = data["swing"]
+        lines += ["**Swing rules:** enter within %s sessions, near today's price (within %s ATR); target at most %s ATR away; "
+                  "exit by the close of day %s after entry if neither stop nor target hits. All 12 risk rules still apply." % (
+                      sw["max_wait_bars"], fmt(sw["max_entry_gap_atr"], 1), fmt(sw["max_target_atr"], 1), sw["max_hold_bars"]), ""]
+    lines += ["## Waiting for your answer", ""]
     if data["cards"]:
         lines += ["| Stock | Setup | Score | Entry zone | Stop | Target | R:R | Size | Risk |",
                   "| --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
@@ -92,15 +105,15 @@ def readme(data, img_prefix, title):
 
 if images:
     day = data["breadth"]["date"]
-    day_dir = os.path.join(ROOT, "snapshots", day)
+    day_dir = os.path.join(snap_dir, day)
     os.makedirs(day_dir, exist_ok=True)
     data_file = os.path.join(day_dir, (data["cycle_id"] or "cycle").replace(":", "") + ".json")
     r = subprocess.run(["node", os.path.join(HERE, "screenshot.js"), out, day_dir], capture_output=True, text=True)
     print(r.stdout.rstrip() or r.stderr.rstrip())
     if r.returncode != 0:
         sys.exit("images failed: %s" % r.stderr.strip())
-    open(os.path.join(day_dir, "README.md"), "w").write(readme(data, "", "Trade Sentinel · %s" % day))
-    open(os.path.join(ROOT, "snapshots", "README.md"), "w").write(
-        readme(data, day + "/", "Trade Sentinel · latest run (%s)" % day).replace(
+    open(os.path.join(day_dir, "README.md"), "w").write(readme(data, "", "%s · %s" % (NAME, day)))
+    open(os.path.join(snap_dir, "README.md"), "w").write(
+        readme(data, day + "/", "%s · latest run (%s)" % (NAME, day)).replace(
             "\n## Waiting", "\nOlder runs: open a dated folder above.\n\n## Waiting", 1))
-    print("readme: snapshots/README.md and snapshots/%s/README.md" % day)
+    print("readme: %s/README.md and %s/%s/README.md" % (snap_dir, snap_dir, day))

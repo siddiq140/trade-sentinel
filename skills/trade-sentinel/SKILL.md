@@ -206,6 +206,16 @@ Cost control: only SIGNAL and PLAN need the strongest model, and only on the
 shortlist. SCAN and MONITOR run fine on a fast model, and code does all the
 arithmetic. Most cycles should cost cents.
 
+## Swing style (1-10 day holds)
+
+Set `"style": "swing"` (preset `nse-swing`). Engines then also follow `prompts/swing.md`: entry zone
+within `max_entry_gap_atr` (1) ATR of the last close, wait at most `max_wait_bars` (3) sessions,
+target the nearer of the next level and entry + `max_target_atr` (3) ATR, and a `max_hold_bars`
+field (at most 10) on every plan. Code adds gate G6 (G6_ENTRY_NEAR, G6_TARGET_REACH, G6_HOLD),
+validation rejects plans that break the limits, and the monitor raises TIME_STOP "exit at the
+close" on an OPEN swing trade after `max_hold_bars` sessions. Snapshots go to `swing/snapshots`
+(`snapshot --out swing/snapshots`, `build_report.py ... --snapshots-dir swing/snapshots`).
+
 ## The twelve risk rules (`risk_rules.json`)
 
 | # | rule | default | gate | why |

@@ -17,6 +17,8 @@ MARKET DATA (code) -> 01 SCAN -> 02 SIGNAL -> 03 PLAN -> 04 RISK -> 05 MONITOR -
 
 **Latest run as pictures: [snapshots/](snapshots/README.md)** (open a dated folder for older runs).
 
+**Swing trades held 1-10 days: [swing/](swing/README.md)**, same engines and rules plus a 10-day hold limit.
+
 Every cycle is saved as one JSON file in [`snapshots/`](snapshots/) (`latest.json` plus one file per
 cycle under the trading date): whole-market breadth for all NSE equities, the scan shortlist, every
 signal, plan and risk verdict, the decision cards, and chart data for the planned stocks. Rebuild the

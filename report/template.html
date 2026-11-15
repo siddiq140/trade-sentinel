@@ -144,8 +144,10 @@ function el(t,a,p,x){const e=document.createElementNS(NS,t);for(const k in a)e.s
 const B = D.breadth, F = D.funnel;
 const dataDay = new Date(B.date+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
 
-$("eyebrow").textContent = `NSE · data to ${dataDay} · cycle ${D.cycle_id}`;
-$("lede").textContent = `All ${F.universe.toLocaleString("en-IN")} NSE equities (series EQ) checked on daily bars. Code did every number; Claude judged the charts; nothing has been ordered. Nifty 50 closed ${fmt(D.index.close)} (${sign(D.index.chg)}).`;
+const SW = D.style==="swing" ? D.swing : null;
+if(SW){ document.querySelector("h1").textContent="Trade Sentinel Swing · 1–"+SW.max_hold_bars+" day trades"; }
+$("eyebrow").textContent = `NSE${SW?" · swing":""} · data to ${dataDay} · cycle ${D.cycle_id}`;
+$("lede").textContent = `All ${F.universe.toLocaleString("en-IN")} NSE equities (series EQ) checked on daily bars. ${SW?`Swing rules: enter within ${SW.max_wait_bars} sessions near today's price, target at most ${SW.max_target_atr} ATR away, exit by day ${SW.max_hold_bars} after entry; all 12 risk rules still apply. `:""}Code did every number; Claude judged the charts; nothing has been ordered. Nifty 50 closed ${fmt(D.index.close)} (${sign(D.index.chg)}).`;
 
 // tiles
 const total=B.advancers+B.decliners+B.unchanged;
@@ -208,6 +210,7 @@ function facts(p, r){
   if(!p||!p.entry_zone) return "";
   const rows=[["Entry zone",`${fmt(p.entry_zone[0])} – ${fmt(p.entry_zone[1])}`],["Stop",fmt(p.stop)],["Target",fmt(p.target)],["Reward : risk",`1 : ${fmt(p.rr)}`]];
   if(r) rows.push(["Size",`${r.size} share${r.size===1?"":"s"}`],["Risk",`₹${fmt(r.risk_amount)}`]);
+  if(p.max_hold_bars) rows.push(["Wait for entry",`up to ${p.time_stop_bars} session${p.time_stop_bars===1?"":"s"}`],["Max hold",`${p.max_hold_bars} trading days`]);
   return `<dl class="facts">${rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
 }
 
@@ -234,7 +237,11 @@ D.plans.forEach(p=>{
   if(p.status==="NO_PLAN"){tag=`<span class="pill mid">No plan</span>`; why=p.reason;}
   else if(r&&r.verdict==="APPROVED"){tag=`<span class="pill ok">Approved</span>`; why="Passed every risk gate.";}
   else {tag=`<span class="pill no">Blocked</span>`; const f=(r?r.gates:[]).filter(g=>!g.pass);
-    why=f.map(g=>g.id==="G2_EXPOSURE"?`Needs ${r.size} shares, ${fmt(g.value,0)}% of the account (limit ${g.limit}%).`:`${g.id}: ${g.value} vs ${g.limit}`).join(" ");}
+    const words={G2_EXPOSURE:g=>`Needs ${r.size} shares, ${fmt(g.value,0)}% of the account (limit ${g.limit}%).`,
+      G3_RR:g=>`Reward : risk ${fmt(g.value)} is below ${g.limit}.`,
+      G6_ENTRY_NEAR:g=>`Entry is ${fmt(g.value,1)} ATR from today's price; a swing needs it within ${SW?SW.max_entry_gap_atr:1}.`,
+      G6_TARGET_REACH:g=>`Target is ${fmt(g.value,1)} ATR away; too far for ${SW?SW.max_hold_bars:10} days.`};
+    why=f.map(g=>words[g.id]?words[g.id](g):`${g.id}: ${g.value} vs ${g.limit}`).join(" ");}
   div.innerHTML=`<div class="head"><h3 style="font-size:18px">${esc(sh(p.symbol))} <span class="note">${esc(s.setup||"")} · score ${s.score??""}</span></h3>${tag}</div>
     <div class="chart"></div>${facts(p.entry_zone?p:null, r&&r.verdict==="APPROVED"?r:null)}<p class="note">${esc(why)}</p>`;
   $("plans").appendChild(div); charts.push([div.querySelector(".chart"),p.symbol,p,280]);
