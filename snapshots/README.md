@@ -1,10 +1,10 @@
-# Trade Sentinel · latest run (2026-11-13)
+# Trade Sentinel · latest run (2026-11-16)
 
-NSE data to **2026-11-13** · cycle `2026-11-15T16:32Z-5444` · Nifty 50 25,144.30 (-0.61%)
+NSE data to **2026-11-16** · cycle `2026-11-16T10:50Z-0609` · Nifty 50 25,291.10 (0.58%)
 
-**2,391 stocks checked** · 871 advanced, 1497 declined · 45% above their 50-day average · 88 near a 20-day high, 26 near a low
+**2,400 stocks checked** · 643 advanced, 1733 declined · 39% above their 50-day average · 84 near a 20-day high, 68 near a low
 
-2,391 NSE equities → 979 liquid → 150 shortlisted → 25 scanned → 7 signals passed → 6 planned → **2 approved**
+2,403 NSE equities → 974 liquid → 150 shortlisted → 25 scanned → 13 signals passed → 13 planned → **4 approved**
 
 Older runs: open a dated folder above.
 
@@ -12,25 +12,27 @@ Older runs: open a dated folder above.
 
 | Stock | Setup | Score | Entry zone | Stop | Target | R:R | Size | Risk |
 | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| **POWERINDIA** | BREAKOUT | 85 | 29,600.00 – 30,281.30 | 29,259.35 | 35,580.00 | 8.28 | 1 | ₹681.30 |
-| **MMFL** | TREND_CONT | 70 | 676.25 – 693.55 | 604.85 | 925.05 | 3.0 | 12 | ₹960.60 |
+| **ANUP** | BREAKOUT | 85 | 1,471.00 – 1,514.67 | 1,449.15 | 1,846.40 | 8.09 | 22 | ₹961.07 |
+| **STYLEBAAZA** | MOMENTUM | 80 | 505.69 – 517.71 | 454.95 | 681.95 | 3.0 | 17 | ₹964.75 |
+| **ITC** | TREND_CONT | 80 | 293.41 – 296.80 | 278.95 | 343.55 | 3.0 | 61 | ₹985.46 |
+| **LICHSGFIN** | MOMENTUM | 80 | 600.96 – 610.04 | 578.10 | 687.70 | 3.0 | 36 | ₹986.40 |
 
-**Blocked:** GCSL needs 104 shares, 83% of the account (limit 35%); FIEMIND needs 22 shares, 44% of the account (limit 35%); ANUP needs 25 shares, 37% of the account (limit 35%); KWIL needs 1020 shares, 42% of the account (limit 35%).
+**Blocked:** ASAHIINDIA needs 55 shares, 62% of the account (limit 35%); DEEPAKFERT needs 36 shares, 46% of the account (limit 35%); MAXHEALTH needs 68 shares, 65% of the account (limit 35%); KPRMILL needs 48 shares, 58% of the account (limit 35%); TVSSCS needs 361 shares, 45% of the account (limit 35%); INDRAMEDCO needs 163 shares, 56% of the account (limit 35%); KIMS needs 91 shares, 68% of the account (limit 35%), G2_LEVERAGE 1.01 vs 1.0; BELRISE needs 217 shares, 48% of the account (limit 35%); HINDOILEXP G4_POSITIONS 4 vs < 4.
 
-![Decision cards](2026-11-13/cards.png)
+![Decision cards](2026-11-16/cards.png)
 
 ## Market and funnel
 
-![Market summary](2026-11-13/summary.png)
+![Market summary](2026-11-16/summary.png)
 
 ## Every plan
 
-![Every plan](2026-11-13/plans.png)
+![Every plan](2026-11-16/plans.png)
 
 ## Signal scores
 
-![Signal scores](2026-11-13/scores.png)
+![Signal scores](2026-11-16/scores.png)
 
-Whole page as one image: [full.png](2026-11-13/full.png). Data: [2026-11-15T1632Z-5444.json](2026-11-13/2026-11-15T1632Z-5444.json).
+Whole page as one image: [full.png](2026-11-16/full.png). Data: [2026-11-16T1050Z-0609.json](2026-11-16/2026-11-16T1050Z-0609.json).
 
 _Educational, not investment advice. You place every order yourself._
