@@ -152,7 +152,7 @@ $("lede").textContent = `All ${F.universe.toLocaleString("en-IN")} NSE equities 
 // tiles
 const total=B.advancers+B.decliners+B.unchanged;
 $("tiles").innerHTML = [
-  ["Stocks checked", B.stocks.toLocaleString("en-IN"), "every NSE equity with prices"],
+  ["Stocks checked", B.stocks.toLocaleString("en-IN"), B.stale ? `with a ${dataDay} bar; ${B.stale.toLocaleString("en-IN")} smaller ones not refreshed yet` : "every NSE equity with prices"],
   ["Advancers : decliners", `${B.advancers} : ${B.decliners}`, `<div class="ad" aria-hidden="true"><i style="width:${B.advancers/total*100}%;background:var(--up)"></i><i style="width:${B.unchanged/total*100}%;background:var(--muted)"></i><i style="width:${B.decliners/total*100}%;background:var(--down)"></i></div>`],
   ["Above 50-day average", fmt(B.above_sma50_pct,0)+"%", "share of stocks in an uptrend"],
   ["Near 20-day high / low", `${B.near_20d_high} / ${B.near_20d_low}`, `${B.up_5pct} up 5%+, ${B.down_5pct} down 5%+`],

@@ -598,6 +598,17 @@ def cmd_prepare(ctx, a):
             short.append(m)
     if few:
         warn.append("%d symbols have fewer than 21 bars (new listings or not fetched yet), skipped" % few)
+    if allm:
+        from collections import Counter
+        day = Counter(m["date"] for m in allm.values()).most_common(1)[0][0]
+        stale = [s for s, m in allm.items() if m["date"] != day]
+        if stale:
+            short = [m for m in short if m["date"] == day]
+            for s_ in stale:
+                allm.pop(s_)
+            warn.append("%d symbols have no %s bar yet (no trades, suspended, or not published), left out: %s"
+                        % (len(stale), day, ", ".join(x.replace(".NS", "") for x in sorted(stale)[:15])
+                           + (" ..." if len(stale) > 15 else "")))
     short.sort(key=lambda m: (-len(m["code_triggers"]), -(m["volume_ratio"] or 0)))
     cap = int(ctx.config.get("max_shortlist", 150))
     if len(short) > cap:
@@ -1185,11 +1196,13 @@ def cmd_snapshot(ctx, a):
                      "hi20": bool(m and m["dist_20d_high_pct"] is not None and m["dist_20d_high_pct"] >= -1.0),
                      "lo20": bool(m and m["dist_20d_low_pct"] is not None and m["dist_20d_low_pct"] <= 1.0)})
     from collections import Counter
-    day = Counter(r["date"] for r in rows).most_common(1)[0][0] if rows else None
+    cyc_dates = Counter(m.get("date") for m in c("metrics.json").values() if m.get("date"))
+    day = (cyc_dates.most_common(1)[0][0] if cyc_dates else
+           (Counter(r["date"] for r in rows).most_common(1)[0][0] if rows else None))
     today = [r for r in rows if r["date"] == day and r["chg"] is not None]
     liquid = [r for r in today if r["tv_cr"] >= ctx.config["min_liquidity"] / 1e7]
     a50 = [r for r in today if r["above50"] is not None]
-    breadth = {"date": day, "stocks": len(today), "advancers": sum(r["chg"] > 0 for r in today),
+    breadth = {"date": day, "stocks": len(today), "stale": len(rows) - len(today), "advancers": sum(r["chg"] > 0 for r in today),
                "decliners": sum(r["chg"] < 0 for r in today), "unchanged": sum(r["chg"] == 0 for r in today),
                "above_sma50_pct": r2(100 * sum(r["above50"] for r in a50) / len(a50)) if a50 else None,
                "near_20d_high": sum(r["hi20"] for r in today), "near_20d_low": sum(r["lo20"] for r in today),
