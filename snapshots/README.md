@@ -1,10 +1,10 @@
-# Trade Sentinel · latest run (2026-11-16)
+# Trade Sentinel · latest run (2026-11-17)
 
-NSE data to **2026-11-16** · cycle `2026-11-16T10:50Z-0609` · Nifty 50 25,291.10 (0.58%)
+NSE data to **2026-11-17** · cycle `2026-11-17T10:50Z-3149` · Nifty 50 25,387.40 (0.38%)
 
-**2,400 stocks checked** · 643 advanced, 1733 declined · 39% above their 50-day average · 84 near a 20-day high, 68 near a low
+**2,401 stocks checked** · 1080 advanced, 1295 declined · 39% above their 50-day average · 81 near a 20-day high, 65 near a low
 
-2,403 NSE equities → 974 liquid → 150 shortlisted → 25 scanned → 13 signals passed → 13 planned → **4 approved**
+2,404 NSE equities → 971 liquid → 150 shortlisted → 25 scanned → 13 signals passed → 12 planned → **4 approved**
 
 Older runs: open a dated folder above. How earlier cards turned out: [TRACKER.md](TRACKER.md).
 
@@ -12,27 +12,27 @@ Older runs: open a dated folder above. How earlier cards turned out: [TRACKER.md
 
 | Stock | Setup | Score | Entry zone | Stop | Target | R:R | Size | Risk |
 | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| **ANUP** | BREAKOUT | 85 | 1,471.00 – 1,514.67 | 1,449.15 | 1,846.40 | 8.09 | 22 | ₹961.07 |
-| **STYLEBAAZA** | MOMENTUM | 80 | 505.69 – 517.71 | 454.95 | 681.95 | 3.0 | 17 | ₹964.75 |
-| **ITC** | TREND_CONT | 80 | 293.41 – 296.80 | 278.95 | 343.55 | 3.0 | 61 | ₹985.46 |
-| **LICHSGFIN** | MOMENTUM | 80 | 600.96 – 610.04 | 578.10 | 687.70 | 3.0 | 36 | ₹986.40 |
+| **HINDOILEXP** | MOMENTUM | 80 | 219.61 – 224.97 | 200.90 | 286.45 | 3.0 | 46 | ₹983.94 |
+| **SANDHAR** | MOMENTUM | 80 | 577.34 – 589.96 | 538.45 | 704.90 | 2.68 | 22 | ₹994.40 |
+| **BANKINDIA** | TREND_CONT | 80 | 158.12 – 160.44 | 148.05 | 192.95 | 3.0 | 89 | ₹999.47 |
+| **MAHABANK** | TREND_CONT | 80 | 95.31 – 96.67 | 89.15 | 116.50 | 3.0 | 146 | ₹998.64 |
 
-**Blocked:** ASAHIINDIA needs 55 shares, 62% of the account (limit 35%); DEEPAKFERT needs 36 shares, 46% of the account (limit 35%); MAXHEALTH needs 68 shares, 65% of the account (limit 35%); KPRMILL needs 48 shares, 58% of the account (limit 35%); TVSSCS needs 361 shares, 45% of the account (limit 35%); INDRAMEDCO needs 163 shares, 56% of the account (limit 35%); KIMS needs 91 shares, 68% of the account (limit 35%), G2_LEVERAGE 1.01 vs 1.0; BELRISE needs 217 shares, 48% of the account (limit 35%); HINDOILEXP G4_POSITIONS 4 vs < 4.
+**Blocked:** DEEPAKFERT needs 33 shares, 42% of the account (limit 35%); SIGNATURE needs 64 shares, 51% of the account (limit 35%); TATAINVEST needs 107 shares, 65% of the account (limit 35%); PACEDIGITK needs 246 shares, 42% of the account (limit 35%); GMRAIRPORT needs 682 shares, 70% of the account (limit 35%); SGFIN needs 49 shares, 37% of the account (limit 35%); PNB G4_POSITIONS 4 vs < 4; THOMASCOOK G3_RR 0.96 vs 2.0, G4_POSITIONS 4 vs < 4.
 
-![Decision cards](2026-11-16/cards.png)
+![Decision cards](2026-11-17/cards.png)
 
 ## Market and funnel
 
-![Market summary](2026-11-16/summary.png)
+![Market summary](2026-11-17/summary.png)
 
 ## Every plan
 
-![Every plan](2026-11-16/plans.png)
+![Every plan](2026-11-17/plans.png)
 
 ## Signal scores
 
-![Signal scores](2026-11-16/scores.png)
+![Signal scores](2026-11-17/scores.png)
 
-Whole page as one image: [full.png](2026-11-16/full.png). Data: [2026-11-16T1050Z-0609.json](2026-11-16/2026-11-16T1050Z-0609.json).
+Whole page as one image: [full.png](2026-11-17/full.png). Data: [2026-11-17T1050Z-3149.json](2026-11-17/2026-11-17T1050Z-3149.json).
 
 _Educational, not investment advice. You place every order yourself._
