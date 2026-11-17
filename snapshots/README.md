@@ -6,7 +6,7 @@ NSE data to **2026-11-16** · cycle `2026-11-16T10:50Z-0609` · Nifty 50 25,291.
 
 2,403 NSE equities → 974 liquid → 150 shortlisted → 25 scanned → 13 signals passed → 13 planned → **4 approved**
 
-Older runs: open a dated folder above.
+Older runs: open a dated folder above. How earlier cards turned out: [TRACKER.md](TRACKER.md).
 
 ## Waiting for your answer
 

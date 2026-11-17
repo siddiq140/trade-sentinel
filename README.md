@@ -17,6 +17,8 @@ MARKET DATA (code) -> 01 SCAN -> 02 SIGNAL -> 03 PLAN -> 04 RISK -> 05 MONITOR -
 
 **Latest run as pictures: [snapshots/](snapshots/README.md)** (open a dated folder for older runs).
 
+**Did the cards work? [Card tracker](snapshots/TRACKER.md)** · [Swing card tracker](swing/snapshots/TRACKER.md): every approved card followed day by day (waiting, open, target, stop, expired). Update with `python3 report/track.py` and `python3 report/track.py --snapshots-dir swing/snapshots`.
+
 **Swing trades held 1-10 days: [swing/](swing/README.md)**, same engines and rules plus a 10-day hold limit.
 
 Every cycle is saved as one JSON file in [`snapshots/`](snapshots/) (`latest.json` plus one file per

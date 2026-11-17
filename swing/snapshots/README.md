@@ -8,7 +8,7 @@ NSE data to **2026-11-16** · cycle `2026-11-16T10:52Z-9370` · Nifty 50 25,291.
 
 **Swing rules:** enter within 3 sessions, near today's price (within 1.0 ATR); target at most 3.0 ATR away; exit by the close of day 10 after entry if neither stop nor target hits. All 12 risk rules still apply.
 
-Older runs: open a dated folder above.
+Older runs: open a dated folder above. How earlier cards turned out: [TRACKER.md](TRACKER.md).
 
 ## Waiting for your answer
 
