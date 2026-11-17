@@ -115,5 +115,5 @@ if images:
     open(os.path.join(day_dir, "README.md"), "w").write(readme(data, "", "%s · %s" % (NAME, day)))
     open(os.path.join(snap_dir, "README.md"), "w").write(
         readme(data, day + "/", "%s · latest run (%s)" % (NAME, day)).replace(
-            "\n## Waiting", "\nOlder runs: open a dated folder above.\n\n## Waiting", 1))
+            "\n## Waiting", "\nOlder runs: open a dated folder above. How earlier cards turned out: [TRACKER.md](TRACKER.md).\n\n## Waiting", 1))
     print("readme: %s/README.md and %s/%s/README.md" % (snap_dir, snap_dir, day))
