@@ -1,10 +1,10 @@
-# Trade Sentinel Swing · latest run (2026-11-18)
+# Trade Sentinel Swing · latest run (2026-11-19)
 
-NSE data to **2026-11-18** · cycle `2026-11-18T10:51Z-4959` · Nifty 50 25,227.95 (-0.63%)
+NSE data to **2026-11-19** · cycle `2026-11-19T10:51Z-5945` · Nifty 50 25,514.30 (1.14%)
 
-**2,397 stocks checked** · 641 advanced, 1733 declined · 36% above their 50-day average · 49 near a 20-day high, 97 near a low
+**2,401 stocks checked** · 1294 advanced, 1079 declined · 37% above their 50-day average · 100 near a 20-day high, 70 near a low
 
-2,404 NSE equities → 972 liquid → 150 shortlisted → 25 scanned → 10 signals passed → 6 planned → **2 approved**
+2,405 NSE equities → 964 liquid → 150 shortlisted → 25 scanned → 15 signals passed → 13 planned → **0 approved**
 
 **Swing rules:** enter within 3 sessions, near today's price (within 1.0 ATR); target at most 3.0 ATR away; exit by the close of day 10 after entry if neither stop nor target hits. All 12 risk rules still apply.
 
@@ -12,27 +12,24 @@ Older runs: open a dated folder above. How earlier cards turned out: [TRACKER.md
 
 ## Waiting for your answer
 
-| Stock | Setup | Score | Entry zone | Stop | Target | R:R | Size | Risk |
-| --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| **SBIN** | MOMENTUM | 80 | 1,129.02 – 1,140.98 | 1,099.70 | 1,206.75 | 2.03 | 28 | ₹988.40 |
-| **FAZE3Q** | BREAKOUT | 70 | 572.00 – 590.00 | 563.00 | 635.00 | 3.0 | 55 | ₹990.00 |
+No plan passed every gate in this cycle.
 
-**Blocked:** SUNTV needs 68 shares, 46% of the account (limit 35%); FINEORG needs 11 shares, 60% of the account (limit 35%); VIJAYA needs 35 shares, 53% of the account (limit 35%); INOXINDIA needs 20 shares, 40% of the account (limit 35%).
+**Blocked:** FLUOROCHEM needs 11 shares, 54% of the account (limit 35%); ENDURANCE needs 26 shares, 67% of the account (limit 35%); MINDACORP needs 70 shares, 52% of the account (limit 35%); IDFCFIRSTB needs 888 shares, 75% of the account (limit 35%); KWIL needs 975 shares, 43% of the account (limit 35%); ARIS needs 256 shares, 39% of the account (limit 35%); HEROMOTOCO needs 13 shares, 73% of the account (limit 35%), G3_RR 1.88 vs 2.0; BANKBARODA needs 295 shares, 82% of the account (limit 35%); WOCKPHARMA needs 23 shares, 48% of the account (limit 35%); SJS needs 21 shares, 45% of the account (limit 35%); CENTRALBK needs 2325 shares, 77% of the account (limit 35%); MSUMI needs 1739 shares, 70% of the account (limit 35%); MARUTI needs 5 shares, 66% of the account (limit 35%).
 
-![Decision cards](2026-11-18/cards.png)
+![Decision cards](2026-11-19/cards.png)
 
 ## Market and funnel
 
-![Market summary](2026-11-18/summary.png)
+![Market summary](2026-11-19/summary.png)
 
 ## Every plan
 
-![Every plan](2026-11-18/plans.png)
+![Every plan](2026-11-19/plans.png)
 
 ## Signal scores
 
-![Signal scores](2026-11-18/scores.png)
+![Signal scores](2026-11-19/scores.png)
 
-Whole page as one image: [full.png](2026-11-18/full.png). Data: [2026-11-18T1051Z-4959.json](2026-11-18/2026-11-18T1051Z-4959.json).
+Whole page as one image: [full.png](2026-11-19/full.png). Data: [2026-11-19T1051Z-5945.json](2026-11-19/2026-11-19T1051Z-5945.json).
 
 _Educational, not investment advice. You place every order yourself._
